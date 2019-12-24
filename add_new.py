@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup, BeautifulStoneSoup
 import requests
 import os
 import re
+from urllib.parse import urlparse
 
 
 # ⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾
@@ -123,6 +124,28 @@ def get_russian(num):
     return '\n'.join([url, text])
 
 
+def download_file(url, path):
+    r = requests.get(url)
+    with open(path, 'wb') as f:
+        f.write(r.content)
+
+
+def download_files(path, num):
+    url = f'https://projecteuler.net/problem={num}'
+    page = requests.get(url)
+    soup = BeautifulSoup(page.text, 'html.parser')
+    problem_content = soup.find('div', 'problem_content')
+    links = problem_content.find_all('a')
+    parsed_uri = urlparse(url)
+    server = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+    for link in links:
+        href = link.attrs['href']
+        if not href.startswith('http'):
+            href = server + href
+        f_name = href.split("/")[-1]
+        download_file(href, path + os.path.sep + f_name)
+
+
 def prepare_text(in_text):
     text = in_text.replace("\n\n", "\n")
     text = text.strip()
@@ -174,3 +197,5 @@ with open(dir_name + os.path.sep + file_name + os.path.sep + file_name + ".py", 
     f.write('end_time = time.time()\n\n')
     f.write('print()\n')
     f.write('print(\'time:\', end_time - start_time)\n')
+
+download_files(dir_name + os.path.sep + file_name, prob_num)
